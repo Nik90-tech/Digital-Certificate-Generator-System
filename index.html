@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Certificate Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Digital Certificate Generator</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <span>🌙</span> Dark Mode
+            </button>
+        </header>
+
+        <div class="app-container">
+            <section class="form-section">
+                <h2 class="section-title">Certificate Details</h2>
+                <form id="certificateForm">
+                    <div class="form-group">
+                        <label for="studentName">Student Name</label>
+                        <input type="text" id="studentName" placeholder="Enter student's full name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="courseName">Course/Training Name</label>
+                        <input type="text" id="courseName" placeholder="Enter course or training name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="issuedBy">Issued By</label>
+                        <input type="text" id="issuedBy" placeholder="College/Institute name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="issueDate">Date of Issue</label>
+                        <input type="date" id="issueDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="duration">Duration</label>
+                        <input type="text" id="duration" placeholder="e.g., 3 Months, 6 Weeks" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="certificateId">Certificate ID</label>
+                        <input type="text" id="certificateId" placeholder="Auto-generated" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="grade">Grade / Score (Optional)</label>
+                        <input type="text" id="grade" placeholder="e.g., A+, 95%">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Institute Logo</label>
+                        <div class="file-input-wrapper">
+                            <div class="file-input-button" id="logoButton">
+                                <span>Click to upload logo</span>
+                            </div>
+                            <input type="file" id="logoUpload" accept="image/*">
+                        </div>
+                        <div class="file-name" id="logoFileName">No file selected</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Signature Image</label>
+                        <div class="file-input-wrapper">
+                            <div class="file-input-button" id="signatureButton">
+                                <span>Click to upload signature</span>
+                            </div>
+                            <input type="file" id="signatureUpload" accept="image/*">
+                        </div>
+                        <div class="file-name" id="signatureFileName">No file selected</div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary" id="generateBtn">
+                            <span>✨</span> Generate Certificate
+                        </button>
+                        <button type="button" class="btn btn-success" id="downloadPdfBtn">
+                            <span>📄</span> Download PDF
+                        </button>
+                        <button type="button" class="btn btn-info" id="downloadPngBtn">
+                            <span>🖼️</span> Download PNG
+                        </button>
+                        <button type="button" class="btn btn-warning" id="printBtn">
+                            <span>🖨️</span> Print
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="preview-section">
+                <h2 class="section-title">Certificate Preview</h2>
+                <div class="certificate" id="certificatePreview">
+                    <div class="certificate-header">
+                        <img src="" alt="Logo" class="certificate-logo" id="previewLogo">
+                        <h2 class="certificate-title">Certificate of Completion</h2>
+                        <p class="certificate-subtitle">This is to certify that</p>
+                    </div>
+                    <div class="certificate-body">
+                        <h3 class="certificate-name" id="previewName">Student Name</h3>
+                        <p class="certificate-text">has successfully completed the course</p>
+                        <p class="certificate-text" id="previewCourse">Course Name</p>
+                        <p class="certificate-text">with a duration of <span id="previewDuration">Duration</span></p>
+                        <div class="certificate-details">
+                            <div class="certificate-detail">
+                                <strong>Issued By:</strong> <span id="previewIssuedBy">Institute Name</span>
+                            </div>
+                            <div class="certificate-detail">
+                                <strong>Date:</strong> <span id="previewDate">Issue Date</span>
+                            </div>
+                            <div class="certificate-detail" id="previewGradeContainer">
+                                <strong>Grade:</strong> <span id="previewGrade">Grade</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="certificate-footer">
+                        <div class="certificate-signature">
+                            <img src="" alt="Signature" class="signature-image" id="previewSignature">
+                            <p>Authorized Signatory</p>
+                        </div>
+                        <div class="certificate-qr">
+                            <div class="qr-code" id="previewQr">
+                                QR Code
+                            </div>
+                            <p>Certificate ID: <span id="previewId">CERT-2025-XXXX</span></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="past-certificates">
+            <h2 class="section-title">Previously Generated Certificates</h2>
+            <div class="certificates-grid" id="certificatesGrid">
+                <!-- Past certificates will be dynamically added here -->
+                <div class="empty-state" id="emptyState">
+                    <div>📄</div>
+                    <p>No certificates generated yet</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
