@@ -148,6 +148,10 @@ function handleLogoUpload(event) {
         const reader = new FileReader();
         reader.onload = function(e) {
             previewLogo.src = e.target.result;
+            previewLogo.onload = function() {
+                // Update preview after image loads
+                updatePreview();
+            };
         };
         reader.readAsDataURL(file);
     }
@@ -161,6 +165,10 @@ function handleSignatureUpload(event) {
         const reader = new FileReader();
         reader.onload = function(e) {
             previewSignature.src = e.target.result;
+            previewSignature.onload = function() {
+                // Update preview after image loads
+                updatePreview();
+            };
         };
         reader.readAsDataURL(file);
     }
@@ -285,8 +293,14 @@ function viewCertificate(id) {
         certificateId.value = certificate.id;
         
         // Set images
-        if (certificate.logo) previewLogo.src = certificate.logo;
-        if (certificate.signature) previewSignature.src = certificate.signature;
+        if (certificate.logo) {
+            previewLogo.src = certificate.logo;
+            previewLogo.onload = updatePreview;
+        }
+        if (certificate.signature) {
+            previewSignature.src = certificate.signature;
+            previewSignature.onload = updatePreview;
+        }
         
         // Update preview
         updatePreview();
@@ -309,46 +323,197 @@ function deleteCertificate(id) {
     }
 }
 
-// Download certificate as PDF
-function downloadAsPDF() {
-    if (!studentName.value) {
-        alert('Please generate a certificate first');
-        return;
-    }
-
-    // Use html2canvas to capture the certificate
-    html2canvas(certificatePreview, {
-        scale: 2, // Higher quality
-        useCORS: true,
-        logging: false
-    }).then(canvas => {
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape, millimeters, A4
-        const imgWidth = 297; // A4 width in mm
-        const imgHeight = canvas.height * imgWidth / canvas.width;
+// Wait for all images to load
+function waitForImages(element) {
+    return new Promise((resolve) => {
+        const images = element.getElementsByTagName('img');
+        if (images.length === 0) {
+            resolve();
+            return;
+        }
         
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        pdf.save(`${certificateId.value}.pdf`);
+        let loadedCount = 0;
+        const totalImages = images.length;
+        
+        const imageLoaded = () => {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+                // Small delay to ensure everything is rendered
+                setTimeout(resolve, 100);
+            }
+        };
+        
+        Array.from(images).forEach(img => {
+            if (img.complete && img.naturalHeight !== 0) {
+                loadedCount++;
+            } else {
+                img.addEventListener('load', imageLoaded);
+                img.addEventListener('error', imageLoaded);
+            }
+        });
+        
+        // Check if all images are already loaded
+        if (loadedCount === totalImages) {
+            setTimeout(resolve, 100);
+        }
     });
 }
 
-// Download certificate as PNG
-function downloadAsPNG() {
+// Download certificate as PDF
+async function downloadAsPDF() {
     if (!studentName.value) {
         alert('Please generate a certificate first');
         return;
     }
 
-    html2canvas(certificatePreview, {
-        scale: 2, // Higher quality
-        useCORS: true,
-        logging: false
-    }).then(canvas => {
+    try {
+        // Show loading message
+        downloadPdfBtn.innerHTML = '<span>⏳</span> Generating PDF...';
+        downloadPdfBtn.disabled = true;
+
+        // Wait for all images to load
+        await waitForImages(certificatePreview);
+
+        // Create a temporary container for PDF generation
+        const pdfContainer = document.createElement('div');
+        pdfContainer.className = 'pdf-capture';
+        
+        // Clone the certificate and preserve all styles
+        const certificateClone = certificatePreview.cloneNode(true);
+        
+        // Force white background and ensure all styles are preserved
+        certificateClone.style.cssText = `
+            background: white !important;
+            border: 20px solid transparent !important;
+            border-image: linear-gradient(45deg, #4361ee, #7209b7, #4cc9f0) !important;
+            border-image-slice: 1 !important;
+            padding: 40px !important;
+            text-align: center !important;
+            width: 800px !important;
+            height: 600px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%234361ee' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E") !important;
+        `;
+        
+        pdfContainer.appendChild(certificateClone);
+        document.body.appendChild(pdfContainer);
+        
+        // Wait for images in the clone to load
+        await waitForImages(certificateClone);
+        
+        // Small delay to ensure rendering
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Capture as canvas with optimal settings
+        const canvas = await html2canvas(certificateClone, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            removeContainer: true
+        });
+
+        // Remove the temporary container
+        document.body.removeChild(pdfContainer);
+
+        // Create PDF
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        // Get PDF page dimensions
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        // Calculate image dimensions to fit the page
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = pageWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        // Center vertically if needed
+        let yOffset = 0;
+        if (imgHeight < pageHeight) {
+            yOffset = (pageHeight - imgHeight) / 2;
+        }
+
+        // Add image to PDF
+        pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
+        
+        // Save PDF
+        pdf.save(`${certificateId.value}.pdf`);
+        
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Error generating PDF. Please try downloading as PNG instead.');
+    } finally {
+        // Reset button state
+        downloadPdfBtn.innerHTML = '<span>📄</span> Download PDF';
+        downloadPdfBtn.disabled = false;
+    }
+}
+
+// Download certificate as PNG
+async function downloadAsPNG() {
+    if (!studentName.value) {
+        alert('Please generate a certificate first');
+        return;
+    }
+
+    try {
+        // Show loading message
+        downloadPngBtn.innerHTML = '<span>⏳</span> Generating PNG...';
+        downloadPngBtn.disabled = true;
+
+        // Wait for all images to load
+        await waitForImages(certificatePreview);
+
+        // Create a temporary container
+        const tempContainer = document.createElement('div');
+        tempContainer.className = 'pdf-capture';
+        
+        const certificateClone = certificatePreview.cloneNode(true);
+        certificateClone.style.cssText = `
+            background: white !important;
+            border: 20px solid transparent !important;
+            border-image: linear-gradient(45deg, #4361ee, #7209b7, #4cc9f0) !important;
+            border-image-slice: 1 !important;
+            padding: 40px !important;
+            width: 800px !important;
+            height: 600px !important;
+        `;
+        
+        tempContainer.appendChild(certificateClone);
+        document.body.appendChild(tempContainer);
+        
+        await waitForImages(certificateClone);
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const canvas = await html2canvas(certificateClone, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false
+        });
+
+        document.body.removeChild(tempContainer);
+
         const link = document.createElement('a');
         link.download = `${certificateId.value}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
-    });
+        
+    } catch (error) {
+        console.error('Error generating PNG:', error);
+        alert('Error generating PNG. Please try again.');
+    } finally {
+        // Reset button state
+        downloadPngBtn.innerHTML = '<span>🖼️</span> Download PNG';
+        downloadPngBtn.disabled = false;
+    }
 }
 
 // Print certificate
@@ -368,7 +533,7 @@ function printCertificate() {
             <style>
                 body { 
                     margin: 0; 
-                    padding: 0; 
+                    padding: 20px; 
                     display: flex; 
                     justify-content: center; 
                     align-items: center; 
@@ -376,14 +541,43 @@ function printCertificate() {
                     background: #f5f5f5;
                 }
                 .certificate { 
-                    width: 297mm; 
-                    height: 210mm; 
+                    width: 100%;
+                    max-width: 800px;
                     background: white;
                     box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                    padding: 40px;
+                    text-align: center;
+                    border: 20px solid transparent;
+                    border-image: linear-gradient(45deg, #4361ee, #7209b7, #4cc9f0);
+                    border-image-slice: 1;
+                }
+                .certificate-name {
+                    font-size: 3rem;
+                    font-weight: 700;
+                    color: #4361ee;
+                    margin-bottom: 30px;
+                    padding: 10px;
+                    border-bottom: 3px solid #4361ee;
+                    display: inline-block;
+                }
+                .certificate-title {
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    color: #4361ee;
+                    margin-bottom: 10px;
                 }
                 @media print {
-                    body { background: white; }
-                    .certificate { box-shadow: none; }
+                    body { 
+                        background: white; 
+                        padding: 0;
+                    }
+                    .certificate { 
+                        box-shadow: none; 
+                        width: 100%;
+                        height: 100%;
+                        margin: 0;
+                        padding: 40px;
+                    }
                 }
             </style>
         </head>
@@ -396,7 +590,9 @@ function printCertificate() {
     
     // Wait for images to load before printing
     printWindow.onload = function() {
-        printWindow.print();
+        setTimeout(() => {
+            printWindow.print();
+        }, 1000);
     };
 }
 
